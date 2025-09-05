@@ -1,0 +1,54 @@
+name: Python Black Check (Reusable)
+
+on:
+  workflow_call:
+    inputs:
+      team:
+        description: "团队/标签，用于作业命名"
+        required: false
+        default: "xiaotianlou"
+        type: string
+      targets:
+        description: 'Black 检查目标（空格分隔），例如："src tests" 或 "."'
+        required: false
+        default: "."
+        type: string
+      python:
+        description: "运行 Black 的 Python 版本"
+        required: false
+        default: "3.11"
+        type: string
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  black:
+    name: Python Package / ${{ inputs.team }} / Code Formatting Check (Black)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ inputs.python }}
+
+      - name: Install Black
+        run: |
+          set -eux
+          # 如项目自带 requirements*.txt，可顺带安装（不强制）
+          REQ=$(ls -1 requirements*.txt 2>/dev/null | head -n1 || true)
+          [ -z "$REQ" ] || pip install -r "$REQ"
+          pip install black
+          black --version
+
+      - name: Run Black (check only)
+        run: |
+          set -eux
+          TARGETS='${{ inputs.targets }}'
+          # --check 只检查不改动；--diff 输出差异，方便在 PR 上查看
+          black --check --diff $TARGETS
